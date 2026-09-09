@@ -1,1 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cyber Defense: SOC Terminal</title>
+  <style>
+    :root {
+      --bg: #0d0221;
+      --card-bg: #1a0b2e;
+      --border: #3b1d63;
+      --text: #e2d9f3;
+      --green: #2ea043;
+      --red: #da3633;
+      --cyan: #a855f7;
+      --yellow: #d29922;
+      --glow: rgba(168, 85, 247, 0.25);
+    }
 
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Courier New', Courier, monospace;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .terminal-container {
+      width: 100%;
+      max-width: 650px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 0 25px var(--glow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .terminal-header {
+      background-color: #21262d;
+      padding: 10px 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .terminal-dots {
+      display: flex;
+      gap: 6px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .dot.red { background-color: #ff5f56; }
+    .dot.yellow { background-color: #ffbd2e; }
+    .dot.green { background-color: #27c93f; }
+
+    .stats-bar {
+      display: flex;
+      justify-content: space-around;
+      padding: 12px;
+      background: #150a26;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+
+    .stat-val {
+      font-weight: bold;
+      color: var(--cyan);
+    }
+
+    .game-body {
+      padding: 20px;
+      min-height: 280px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .card {
+      background: #0d0221;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+
+    .card-row {
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      word-break: break-all;
+    }
+
+    .card-label {
+      color: var(--yellow);
+      font-weight: bold;
+    }
+
+    .card-body-text {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px dashed var(--border);
+      font-size: 0.95rem;
+      line-height: 1.4;
+      color: #f3ecff;
+    }
+
+    .feedback {
+      min-height: 24px;
+      font-size: 0.9rem;
+      text-align: center;
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+
+    .feedback.correct { color: #3fb950; }
+    .feedback.wrong { color: #f85149; }
+
+    .actions {
+      display: flex;
+      gap: 15px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: opacity 0.2s, transform 0.1s;
+      font-family: inherit;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-danger {
+      background-color: var(--red);
+      color: white;
+    }
+
+    .btn-success {
+      background-color: var(--green);
+      color: white;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .screen {
+      text-align: center;
+      padding: 20px 10px;
+    }
+
+    .screen h2 {
+      color: var(--cyan);
+      margin-bottom: 12px;
+    }
+
+    .screen p {
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .btn-primary {
+      background-color: var(--cyan);
+      color: #000;
+      padding: 12px 24px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="terminal-container">
+    <div class="terminal-header">
+      <div class="terminal-dots">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+      </div>
+      <span>SEC-OPS FIREWALL v1.0.4</span>
+    </div>
+
+    <div class="stats-bar">
+      <div>SCORE: <span id="score" class="stat-val">0</span></div>
+      <div>INTEGRITY: <span id="lives" class="stat-val">❤❤❤</span></div>
+      <div>TIME: <span id="timer" class="stat-val">10s</span></div>
+    </div>
+
+    <div class="game-body">
+      <div id="start-screen" class="screen">
+        <h2>DEFEND THE NETWORK</h2>
+        <p>You are the lead SOC analyst. Inspect incoming requests, emails, and links.<br>
+           Flag threats as <strong>[BLOCK / PHISH]</strong> and genuine items as <strong>[ALLOW / SAFE]</strong>.
+        </p>
+        <button id="start-btn" class="btn btn-primary">INITIALIZE FIREWALL</button>
+      </div>
+
+      <div id="play-screen" class="hidden">
+        <div class="card">
+          <div class="card-row"><span class="card-label">SENDER/SOURCE:</span> <span id="item-source"></span></div>
+          <div class="card-row"><span class="card-label">SUBJECT/TARGET:</span> <span id="item-title"></span></div>
+          <div class="card-row"><span class="card-label">ATTACHMENT/URL:</span> <span id="item-attachment"></span></div>
+          <div class="card-body-text" id="item-desc"></div>
+        </div>
+
+        <div id="feedback" class="feedback"></div>
+
+        <div class="actions">
+          <button id="block-btn" class="btn btn-danger">BLOCK (THREAT)</button>
+          <button id="allow-btn" class="btn btn-success">ALLOW (LEGIT)</button>
+        </div>
+      </div>
+
+      <div id="gameover-screen" class="screen hidden">
+        <h2 id="gameover-title">BREACH DETECTED!</h2>
+        <p id="gameover-msg"></p>
+        <p>Final Score: <strong id="final-score"></strong></p>
+        <button id="restart-btn" class="btn btn-primary">RESTART SYSTEM</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const scenarios = [
+      {
+        source: "support@paypaI.com",
+        title: "URGENT: Unauthorized Transaction Detected!",
+        attachment: "http://pay-pal-security-verification.biz/login",
+        desc: "Dear user, we detected an unauthorized charge of $820. Click the link above within 15 minutes or your account will be deleted permanently.",
+        isThreat: true,
+        reason: "Phishing: Typo-squatted domain ('paypaI' with capital 'I'), high urgency pressure, and untrusted suspicious domain."
+      },
+      {
+        source: "github-notifications@github.com",
+        title: "[Pull Request] #142 Fix memory leak in auth module",
+        attachment: "https://github.com/company/repo/pull/142",
+        desc: "Alice requested your review on PR #142: 'Refactored token refresh mechanism to reduce unnecessary network roundtrips.'",
+        isThreat: false,
+        reason: "Safe: Legitimate domain and routine development workflow notification."
+      },
+      {
+        source: "accounting@our-company-payroll.top",
+        title: "Updated Direct Deposit Invoice",
+        attachment: "Salary_Adjustment_2026.pdf.exe",
+        desc: "Please review the updated tax withholding and direct deposit forms attached immediately.",
+        isThreat: true,
+        reason: "Malware: Double extension (.pdf.exe) used to disguise an executable payload as a document."
+      },
+      {
+        source: "it-helpdesk@internal.corp",
+        title: "Quarterly Routine Active Directory Password Rotation",
+        attachment: "None (Internal Portal)",
+        desc: "Friendly reminder: your corporate account password expires in 10 days. Please change it through the regular Windows Ctrl+Alt+Del menu.",
+        isThreat: false,
+        reason: "Safe: Routine alert, points to standard OS mechanisms, and does not demand credential entry via external links."
+      },
+      {
+        source: "ceo.urgent.task@gmail.com",
+        title: "Confidential Task - I need you to buy gift cards",
+        attachment: "None",
+        desc: "I'm currently stuck in a meeting with an investor. I need you to purchase five $100 Apple gift cards and text me the codes right away.",
+        isThreat: true,
+        reason: "Business Email Compromise (BEC): CEO using free webmail (gmail.com) requesting untraceable gift cards."
+      },
+      {
+        source: "no-reply@accounts.google.com",
+        title: "Security alert: New sign-in on Windows",
+        attachment: "https://myaccount.google.com/notifications",
+        desc: "We noticed a new login to your Google Account from Chrome on Windows. If this was you, you don't need to do anything.",
+        isThreat: false,
+        reason: "Safe: Genuine domain and typical informational security notification."
+      },
+      {
+        source: "delivery@dhl-tracking-express.tk",
+        title: "Parcel delivery failed - address verification required",
+        attachment: "http://dhl.tk-tracking.ru/confirm",
+        desc: "Package #DH9182390 could not be delivered. Update your home address and pay $1.50 re-dispatch fee.",
+        isThreat: true,
+        reason: "Phishing / Smishing variant: Fake tracking link pointing to suspicious TLDs (.tk, .ru)."
+      }
+    ];
+
+    let currentQueue = [];
+    let currentIndex = 0;
+    let score = 0;
+    let lives = 3;
+    let timeLeft = 12;
+    let timer = null;
+
+    const startScreen = document.getElementById("start-screen");
+    const playScreen = document.getElementById("play-screen");
+    const gameoverScreen = document.getElementById("gameover-screen");
+
+    const startBtn = document.getElementById("start-btn");
+    const restartBtn = document.getElementById("restart-btn");
+    const blockBtn = document.getElementById("block-btn");
+    const allowBtn = document.getElementById("allow-btn");
+
+    const scoreEl = document.getElementById("score");
+    const livesEl = document.getElementById("lives");
+    const timerEl = document.getElementById("timer");
+    const feedbackEl = document.getElementById("feedback");
+
+    const itemSource = document.getElementById("item-source");
+    const itemTitle = document.getElementById("item-title");
+    const itemAttachment = document.getElementById("item-attachment");
+    const itemDesc = document.getElementById("item-desc");
+
+    const gameoverTitle = document.getElementById("gameover-title");
+    const gameoverMsg = document.getElementById("gameover-msg");
+    const finalScoreEl = document.getElementById("final-score");
+
+    function shuffle(arr) {
+      return [...arr].sort(() => Math.random() - 0.5);
+    }
+
+    function startGame() {
+      score = 0;
+      lives = 3;
+      currentIndex = 0;
+      currentQueue = shuffle(scenarios);
+
+      scoreEl.textContent = score;
+      updateLivesDisplay();
+
+      startScreen.classList.add("hidden");
+      gameoverScreen.classList.add("hidden");
+      playScreen.classList.remove("hidden");
+
+      loadScenario();
+    }
+
+    function updateLivesDisplay() {
+      livesEl.textContent = "❤".repeat(Math.max(0, lives));
+    }
+
+    function resetTimer() {
+      clearInterval(timer);
+      timeLeft = 12;
+      timerEl.textContent = `${timeLeft}s`;
+
+      timer = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = `${timeLeft}s`;
+
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          handleDecision(null);
+        }
+      }, 1000);
+    }
+
+    function loadScenario() {
+      if (currentIndex >= currentQueue.length) {
+        currentQueue = shuffle(scenarios);
+        currentIndex = 0;
+      }
+
+      const item = currentQueue[currentIndex];
+      itemSource.textContent = item.source;
+      itemTitle.textContent = item.title;
+      itemAttachment.textContent = item.attachment;
+      itemDesc.textContent = item.desc;
+
+      toggleButtons(false);
+      resetTimer();
+    }
+
+    function toggleButtons(disabled) {
+      blockBtn.disabled = disabled;
+      allowBtn.disabled = disabled;
+    }
+
+    function handleDecision(userAction) {
+      clearInterval(timer);
+      toggleButtons(true);
+
+      const item = currentQueue[currentIndex];
+      let isCorrect = false;
+
+      if (userAction === null) {
+        feedbackEl.className = "feedback wrong";
+        feedbackEl.textContent = "TIMEOUT! Threat analysis failed.";
+      } else {
+        const markedThreat = userAction === "block";
+        isCorrect = markedThreat === item.isThreat;
+
+        if (isCorrect) {
+          score += 100 + timeLeft * 10;
+          scoreEl.textContent = score;
+          feedbackEl.className = "feedback correct";
+          feedbackEl.textContent = `GOOD CATCH: ${item.reason}`;
+        } else {
+          feedbackEl.className = "feedback wrong";
+          feedbackEl.textContent = `CRITICAL ERROR: ${item.reason}`;
+        }
+      }
+
+      if (!isCorrect) {
+        lives--;
+        updateLivesDisplay();
+      }
+
+      setTimeout(() => {
+        feedbackEl.textContent = "";
+        if (lives <= 0) {
+          endGame(false);
+        } else {
+          currentIndex++;
+          loadScenario();
+        }
+      }, 2500);
+    }
+
+    function endGame(victory) {
+      clearInterval(timer);
+      playScreen.classList.add("hidden");
+      gameoverScreen.classList.remove("hidden");
+
+      finalScoreEl.textContent = score;
+      if (victory) {
+        gameoverTitle.textContent = "NETWORK SECURED!";
+        gameoverMsg.textContent = "You successfully mitigated active attacks and protected the company infrastructure.";
+      } else {
+        gameoverTitle.textContent = "SECURITY BREACH!";
+        gameoverMsg.textContent = "Malware or credentials leaked. System integrity reached 0%.";
+      }
+    }
+
+    startBtn.addEventListener("click", startGame);
+    restartBtn.addEventListener("click", startGame);
+
+    blockBtn.addEventListener("click", () => handleDecision("block"));
+    allowBtn.addEventListener("click", () => handleDecision("allow"));
+  </script>
+</body>
+</html>
